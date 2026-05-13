@@ -2,6 +2,8 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import transactionsRouter from './routes/transactions.js'
 import periodsRouter from './routes/periods.js'
 import budgetsRouter from './routes/budgets.js'
@@ -15,9 +17,10 @@ if (!process.env.AERARIUM_PASSWORD) {
 }
 
 const app = express()
-const PORT = 3001
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001
+const CORS_ORIGIN = process.env.CORS_ORIGIN ?? 'http://localhost:5173'
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }))
+app.use(cors({ origin: CORS_ORIGIN, credentials: true }))
 app.use(express.json())
 app.use(cookieParser())
 
@@ -40,6 +43,14 @@ app.use('/api/budgets', budgetsRouter)
 app.use('/api/dashboard', dashboardRouter)
 app.use('/api/settings', settingsRouter)
 
+// Serve built frontend in production
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const distPath = path.resolve(__dirname, '../../dist')
+app.use(express.static(distPath))
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'))
+})
+
 app.listen(PORT, () => {
-  console.log(`Aerarium API running on http://localhost:${PORT}`)
+  console.log(`Aerarium running on http://localhost:${PORT}`)
 })

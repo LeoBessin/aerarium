@@ -1,0 +1,13 @@
+services:
+  aerarium:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    volumes:
+      - aerarium-data:/app/data
+
+volumes:
+  aerarium-data:

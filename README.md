@@ -37,6 +37,40 @@ A self-hosted personal finance tracker. Track transactions, define periods, buil
 
 ## Getting started (local dev)
 
+## Docker (recommended for self-hosting)
+
+### Prerequisites
+
+- Docker
+- Docker Compose v2
+
+### Run
+
+```bash
+git clone https://github.com/LeoBessin/aerarium.git
+cd aerarium
+cp .env.example .env   # then set AERARIUM_PASSWORD
+docker compose up -d
+```
+
+The app is available at [http://localhost:3001](http://localhost:3001).
+
+Data is persisted in a named Docker volume (`aerarium-data`). To back up, use the **Export** button in Settings, or:
+
+```bash
+docker run --rm -v aerarium_aerarium-data:/data -v $(pwd):/out alpine \
+  cp /data/aerarium.json /out/aerarium-backup.json
+```
+
+To update to the latest version:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+---
+
 ### Prerequisites
 
 - Node.js 18+
@@ -162,6 +196,8 @@ server {
 | Variable | Required | Description |
 |---|---|---|
 | `AERARIUM_PASSWORD` | Yes | Master password for the lock screen. The server refuses to start without it. |
+| `PORT` | No | Port the server listens on. Defaults to `3001`. |
+| `CORS_ORIGIN` | No | Allowed CORS origin. Defaults to `http://localhost:5173`. Not needed in production (same-origin). |
 
 ---
 
