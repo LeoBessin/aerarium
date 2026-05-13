@@ -24,6 +24,9 @@ app.use(cors({ origin: CORS_ORIGIN, credentials: true }))
 app.use(express.json())
 app.use(cookieParser())
 
+// Health check (public)
+app.get('/health', (_req, res) => res.json({ ok: true }))
+
 // Auth routes (public)
 app.use('/api/auth', authRouter)
 
