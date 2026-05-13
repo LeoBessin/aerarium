@@ -47,11 +47,14 @@ export function CardWrapper({ card, transactions, budgets, periods, currency, mo
           <GripVertical className="h-4 w-4" />
         </div>
         <span className="text-xs font-medium text-text-secondary flex-1 truncate">{card.title}</span>
-        {hovered && (
-          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onRemove}>
-            <X className="h-3 w-3" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`h-5 w-5 transition-opacity ${hovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          onClick={onRemove}
+        >
+          <X className="h-3 w-3" />
+        </Button>
       </div>
 
       {/* Card body */}
