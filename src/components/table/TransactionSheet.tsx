@@ -103,7 +103,7 @@ export function TransactionSheet({ open, onOpenChange, transaction, allTransacti
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/40"
+        className="fixed inset-0 z-40 bg-scrim-soft"
         onClick={() => onOpenChange(false)}
       />
       {/* Sheet */}
@@ -245,8 +245,8 @@ export function TransactionSheet({ open, onOpenChange, transaction, allTransacti
                     key={cat}
                     type="button"
                     onClick={() => removeCategory(cat)}
-                    className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-medium transition-opacity hover:opacity-70"
-                    style={{ backgroundColor: `${categoryColor(cat)}20`, color: categoryColor(cat), border: `1px solid ${categoryColor(cat)}30` }}
+                    className="chip inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-medium transition-opacity hover:opacity-70"
+                    style={{ '--chip': categoryColor(cat) } as React.CSSProperties}
                   >
                     {cat}
                     <X className="h-2.5 w-2.5" />

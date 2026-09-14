@@ -1,7 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, List, Calendar, Settings, Coins, LogOut } from 'lucide-react'
+import { LayoutDashboard, List, Calendar, Settings, Coins, LogOut, Sun, Moon, Monitor } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
+import { useTheme } from '@/hooks/useTheme'
+
+const THEME_ICON = { dark: Moon, light: Sun, system: Monitor }
+const THEME_LABEL = { dark: 'Dark theme', light: 'Light theme', system: 'System theme' }
 
 const nav = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -14,6 +18,9 @@ interface Props {
 }
 
 export function Sidebar({ onLogout }: Props) {
+  const { preference, cycleTheme } = useTheme()
+  const ThemeIcon = THEME_ICON[preference]
+
   async function handleLogout() {
     await api.auth.logout().catch(() => {})
     onLogout()
@@ -67,13 +74,23 @@ export function Sidebar({ onLogout }: Props) {
           <Settings className="h-4 w-4 shrink-0" />
           Settings
         </NavLink>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm text-text-muted hover:bg-surface-overlay hover:text-text-secondary transition-colors"
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          Lock
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleLogout}
+            className="flex-1 flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm text-text-muted hover:bg-surface-overlay hover:text-text-secondary transition-colors"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            Lock
+          </button>
+          <button
+            onClick={cycleTheme}
+            title={`${THEME_LABEL[preference]} — click to change`}
+            aria-label={`${THEME_LABEL[preference]}. Switch theme`}
+            className="shrink-0 h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:bg-surface-overlay hover:text-text-secondary transition-colors"
+          >
+            <ThemeIcon className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </aside>
   )

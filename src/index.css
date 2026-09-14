@@ -2,6 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Palette ────────────────────────────────────────────────────────────────
+   Channel-only values, consumed as rgb(var(--x) / <alpha-value>) by Tailwind
+   (see tailwind.config.js) so opacity modifiers keep working.
+   Chart colors mirror these as literal hexes in src/lib/theme.ts — keep both
+   in sync. */
+:root {
+  --background: 14 14 16;        /* #0e0e10 */
+  --surface: 19 19 22;           /* #131316 */
+  --surface-raised: 28 28 33;    /* #1c1c21 */
+  --surface-overlay: 34 34 40;   /* #222228 */
+  --border: 38 38 44;            /* #26262c */
+  --border-strong: 54 54 64;     /* #363640 */
+  --text-primary: 226 226 233;   /* #e2e2e9 */
+  --text-secondary: 180 180 192; /* #b4b4c0 */
+  --text-muted: 138 138 154;     /* #8a8a9a */
+  --text-disabled: 85 85 95;     /* #55555f */
+  --accent: 94 106 210;          /* #5e6ad2 */
+  --accent-hover: 107 120 229;   /* #6b78e5 */
+  --success: 76 175 125;         /* #4caf7d */
+  --warning: 245 166 35;         /* #f5a623 */
+  --danger: 224 92 92;           /* #e05c5c */
+  --income: 76 175 125;          /* #4caf7d */
+  --expense: 224 92 92;          /* #e05c5c */
+
+  /* Complete colors (alpha baked in): no opacity modifiers. */
+  --scrim: rgb(0 0 0 / 0.6);
+  --scrim-soft: rgb(0 0 0 / 0.4);
+  --scrollbar-thumb: 38 38 44;
+  --scrollbar-thumb-hover: 54 54 64;
+
+  /* Category / period chips: the hue arrives per element as --chip. */
+  --chip-ink: 255 255 255;
+  --chip-ink-amount: 0%; /* dark: use the hue as-is */
+}
+
+html[data-theme='light'] {
+  --background: 244 245 248;     /* #f4f5f8 — page canvas */
+  --surface: 255 255 255;        /* #ffffff — cards, sidebar, dialogs */
+  --surface-raised: 255 255 255; /* #ffffff — border + shadow do the lifting */
+  --surface-overlay: 236 238 243;/* #eceef3 — hovers */
+  --border: 228 229 236;         /* #e4e5ec */
+  --border-strong: 199 201 212;  /* #c7c9d4 */
+  --text-primary: 22 22 28;      /* #16161c */
+  --text-secondary: 67 68 79;    /* #43444f */
+  --text-muted: 108 110 123;     /* #6c6e7b — 4.8:1 on white */
+  --text-disabled: 166 168 180;  /* #a6a8b4 */
+  --accent: 79 90 196;           /* #4f5ac4 — white-on-accent 5.9:1 */
+  --accent-hover: 65 75 176;     /* #414bb0 — darkens on hover */
+  --success: 21 127 76;          /* #157f4c */
+  --warning: 154 98 18;          /* #9a6212 */
+  --danger: 196 56 58;           /* #c4383a */
+  --income: 21 127 76;           /* #157f4c */
+  --expense: 196 56 58;          /* #c4383a */
+
+  --scrim: rgb(24 25 32 / 0.35);
+  --scrim-soft: rgb(24 25 32 / 0.2);
+  --scrollbar-thumb: 205 207 216;
+  --scrollbar-thumb-hover: 176 179 191;
+
+  --chip-ink: 11 11 15;
+  --chip-ink-amount: 28%; /* darken bright hues for text on a pale tint */
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -15,8 +78,8 @@
 
   body {
     font-family: 'Inter', system-ui, sans-serif;
-    background-color: #0e0e10;
-    color: #e2e2e9;
+    background-color: rgb(var(--background));
+    color: rgb(var(--text-primary));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -30,24 +93,43 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #26262c;
+    background: rgb(var(--scrollbar-thumb));
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #363640;
+    background: rgb(var(--scrollbar-thumb-hover));
   }
 
-  /* Date input */
+  /* Date input — color-scheme on <html> recolors the native indicator, so no
+     invert() hack is needed in either theme. */
   input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.6);
     cursor: pointer;
+  }
+}
+
+/* Category / period chips. Elements supply the hue as `--chip`; color-mix
+   composites the tint correctly on either surface and darkens bright hues for
+   legibility in light mode — without threading the theme through React, which
+   matters for user-chosen period colors. */
+@layer components {
+  .chip {
+    background-color: color-mix(in srgb, var(--chip) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--chip) 30%, transparent);
+    color: color-mix(in srgb, var(--chip), rgb(var(--chip-ink)) var(--chip-ink-amount));
+  }
+
+  .chip-band {
+    background-color: color-mix(in srgb, var(--chip) 16%, transparent);
+    border-color: color-mix(in srgb, var(--chip) 30%, transparent);
+    border-style: solid;
+    color: color-mix(in srgb, var(--chip), rgb(var(--chip-ink)) var(--chip-ink-amount));
   }
 }
 
 /* react-grid-layout overrides */
 .react-grid-item.react-grid-placeholder {
-  background: #5e6ad220;
-  border: 1px dashed #5e6ad260;
+  background: rgb(var(--accent) / 0.12);
+  border: 1px dashed rgb(var(--accent) / 0.38);
   border-radius: 8px;
   opacity: 1 !important;
 }
@@ -62,5 +144,5 @@
 }
 
 .react-resizable-handle::after {
-  border-color: #5e6ad2 !important;
+  border-color: rgb(var(--accent)) !important;
 }

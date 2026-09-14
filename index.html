@@ -5,6 +5,38 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Aerarium</title>
+    <script>
+      // Resolve the theme before first paint. Mirrors applyTheme() in
+      // src/lib/theme.ts. Any failure falls through to dark, the app's default.
+      (function () {
+        var resolved = 'dark'
+        try {
+          var pref = null
+          try {
+            pref = localStorage.getItem('aerarium.theme')
+          } catch (e) {
+            /* private mode / storage blocked: access itself can throw */
+          }
+          if (pref !== 'dark' && pref !== 'light' && pref !== 'system') pref = 'system'
+          resolved =
+            pref === 'system'
+              ? window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+                ? 'light'
+                : 'dark'
+              : pref
+        } catch (e) {
+          resolved = 'dark'
+        }
+        document.documentElement.setAttribute('data-theme', resolved)
+        document.documentElement.style.colorScheme = resolved
+      })()
+    </script>
+    <style>
+      /* Pre-CSS paint guard: index.css only arrives with the module script.
+         Must match --background in each theme. */
+      html { background-color: #0e0e10; }
+      html[data-theme='light'] { background-color: #f4f5f8; }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />

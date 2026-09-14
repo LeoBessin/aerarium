@@ -156,21 +156,23 @@ export function CalendarView() {
                       key={p.id}
                       onClick={(e) => openEdit(p, e)}
                       className={cn(
-                        'h-5 flex items-center px-1.5 text-2xs font-medium truncate cursor-pointer hover:brightness-110 transition-all',
+                        'chip-band h-5 flex items-center px-1.5 text-2xs font-medium truncate cursor-pointer transition-all',
+                        // brightening washes out a pale tint, so light mode darkens instead
+                        'hover:brightness-95 dark:hover:brightness-110',
                         isStart && 'rounded-l-sm',
                         isEnd && 'rounded-r-sm',
                       )}
                       style={{
-                        backgroundColor: `${p.color}25`,
-                        color: p.color,
-                        borderLeft: isStart ? `2px solid ${p.color}` : undefined,
-                        borderTop: `1px solid ${p.color}30`,
-                        borderBottom: `1px solid ${p.color}30`,
-                        borderRight: isEnd ? `1px solid ${p.color}30` : undefined,
+                        '--chip': p.color,
+                        borderLeftWidth: isStart ? 2 : 0,
+                        borderLeftColor: isStart ? p.color : undefined,
+                        borderTopWidth: 1,
+                        borderBottomWidth: 1,
+                        borderRightWidth: isEnd ? 1 : 0,
                         marginLeft: isStart ? 0 : -6,
                         marginRight: isEnd ? 0 : -6,
                         paddingLeft: isStart ? 6 : 4,
-                      }}
+                      } as React.CSSProperties}
                     >
                       {isStart && p.label}
                     </div>

@@ -6,6 +6,8 @@ import {
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import type { DashboardCard, Transaction, Budget, Period } from '@/types'
 import { formatCurrency, categoryColor, getDaysInRange } from '@/lib/utils'
+import { useTheme } from '@/hooks/useTheme'
+import { chartColors, type ChartColors } from '@/lib/theme'
 import { parseISO, isWithinInterval, format, startOfMonth, endOfMonth, subMonths, eachDayOfInterval } from 'date-fns'
 
 export interface CardProps {
@@ -18,10 +20,7 @@ export interface CardProps {
   month: Date
 }
 
-const CHART_STYLE = {
-  fontSize: 11,
-  fill: '#8a8a9a',
-}
+const chartTick = (c: ChartColors) => ({ fontSize: 11, fill: c.axis })
 
 function TooltipContent({ active, payload, label, currency }: {
   active?: boolean; payload?: { name: string; value: number }[]; label?: string; currency: string
@@ -106,6 +105,8 @@ export function TotalCard({ card, transactions, currency, month }: CardProps) {
 
 // ── Top Categories Card ───────────────────────────────────────────────────────
 export function TopCategoriesCard({ card, transactions, currency, month }: CardProps) {
+  const { resolved: theme } = useTheme()
+  const c = chartColors(theme)
   const filtered = filterToMonth(transactions, month, card, [])
   const topN = card.config.topN ?? 5
 
@@ -119,8 +120,8 @@ export function TopCategoriesCard({ card, transactions, currency, month }: CardP
     return Object.entries(map)
       .sort((a, b) => b[1] - a[1])
       .slice(0, topN)
-      .map(([name, value]) => ({ name, value, color: categoryColor(name) }))
-  }, [filtered, topN])
+      .map(([name, value]) => ({ name, value, color: categoryColor(name, theme) }))
+  }, [filtered, topN, theme])
 
   if (!data.length) return <div className="flex items-center justify-center h-full text-text-muted text-sm">No data</div>
 
@@ -140,9 +141,9 @@ export function TopCategoriesCard({ card, transactions, currency, month }: CardP
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} layout="vertical" margin={{ left: 8, right: 8, top: 4, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#26262c" horizontal={false} />
-        <XAxis type="number" tick={CHART_STYLE} tickFormatter={v => formatCurrency(v, currency)} />
-        <YAxis dataKey="name" type="category" tick={CHART_STYLE} width={70} />
+        <CartesianGrid strokeDasharray="3 3" stroke={c.grid} horizontal={false} />
+        <XAxis type="number" tick={chartTick(c)} tickFormatter={v => formatCurrency(v, currency)} />
+        <YAxis dataKey="name" type="category" tick={chartTick(c)} width={70} />
         <Tooltip content={<TooltipContent currency={currency} />} />
         <Bar dataKey="value" radius={[0, 3, 3, 0]}>
           {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
@@ -155,6 +156,7 @@ export function TopCategoriesCard({ card, transactions, currency, month }: CardP
 // ── Daily Breakdown Card ──────────────────────────────────────────────────────
 // Cumulative running total per day within the selected month
 export function DailyBreakdownCard({ card, transactions, currency, month }: CardProps) {
+  const c = chartColors(useTheme().resolved)
   const mStart = startOfMonth(month)
   const mEnd = endOfMonth(month)
 
@@ -194,22 +196,22 @@ export function DailyBreakdownCard({ card, transactions, currency, month }: Card
       <AreaChart data={data} margin={{ left: 8, right: 4, top: 4, bottom: 4 }}>
         <defs>
           <linearGradient id="dailyGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#5e6ad2" stopOpacity={0.15} />
-            <stop offset="95%" stopColor="#5e6ad2" stopOpacity={0} />
+            <stop offset="5%" stopColor={c.accent} stopOpacity={0.15} />
+            <stop offset="95%" stopColor={c.accent} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#26262c" vertical={false} />
-        <XAxis dataKey="label" tick={CHART_STYLE} interval={4} />
-        <YAxis tick={CHART_STYLE} tickFormatter={v => formatCurrency(v, currency)} width={70} />
+        <CartesianGrid strokeDasharray="3 3" stroke={c.grid} vertical={false} />
+        <XAxis dataKey="label" tick={chartTick(c)} interval={4} />
+        <YAxis tick={chartTick(c)} tickFormatter={v => formatCurrency(v, currency)} width={70} />
         <Tooltip content={<TooltipContent currency={currency} />} />
         <Area
           type="monotone"
           dataKey="value"
-          stroke="#5e6ad2"
+          stroke={c.accent}
           strokeWidth={2}
           fill="url(#dailyGradient)"
           dot={false}
-          activeDot={{ r: 4, fill: '#5e6ad2', stroke: '#0e0e10', strokeWidth: 2 }}
+          activeDot={{ r: 4, fill: c.accent, stroke: c.surface, strokeWidth: 2 }}
         />
       </AreaChart>
     </ResponsiveContainer>
@@ -219,6 +221,7 @@ export function DailyBreakdownCard({ card, transactions, currency, month }: Card
 // ── Avg Daily Per Period Card ─────────────────────────────────────────────────
 // Shows periods that overlap with the selected month
 export function AvgDailyPerPeriodCard({ card, transactions, periods, currency, month }: CardProps) {
+  const c = chartColors(useTheme().resolved)
   const mStart = startOfMonth(month)
   const mEnd = endOfMonth(month)
 
@@ -269,9 +272,9 @@ export function AvgDailyPerPeriodCard({ card, transactions, periods, currency, m
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ left: 8, right: 8, top: 4, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#26262c" />
-        <XAxis dataKey="label" tick={CHART_STYLE} />
-        <YAxis tick={CHART_STYLE} tickFormatter={v => formatCurrency(v, currency)} width={70} />
+        <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
+        <XAxis dataKey="label" tick={chartTick(c)} />
+        <YAxis tick={chartTick(c)} tickFormatter={v => formatCurrency(v, currency)} width={70} />
         <Tooltip content={<TooltipContent currency={currency} />} />
         <Bar dataKey="value" radius={[3, 3, 0, 0]}>
           {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
@@ -283,6 +286,8 @@ export function AvgDailyPerPeriodCard({ card, transactions, periods, currency, m
 
 // ── Budget vs Actual Card ─────────────────────────────────────────────────────
 export function BudgetVsActualCard({ card, transactions, budgets, currency, month }: CardProps) {
+  const { resolved: theme } = useTheme()
+  const c = chartColors(theme)
   const monthStart = startOfMonth(month)
   const monthEnd = endOfMonth(month)
 
@@ -299,24 +304,24 @@ export function BudgetVsActualCard({ card, transactions, budgets, currency, mont
         label: b.category,
         Budget: b.amount,
         Actual: actual,
-        color: categoryColor(b.category),
+        color: categoryColor(b.category, theme),
       }
     })
-  }, [budgets, transactions, monthStart, monthEnd])
+  }, [budgets, transactions, monthStart, monthEnd, theme])
 
   if (!data.length) return <div className="flex items-center justify-center h-full text-text-muted text-sm">No budgets set</div>
 
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ left: 8, right: 8, top: 4, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#26262c" />
-        <XAxis dataKey="label" tick={CHART_STYLE} />
-        <YAxis tick={CHART_STYLE} tickFormatter={v => formatCurrency(v, currency)} width={70} />
+        <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
+        <XAxis dataKey="label" tick={chartTick(c)} />
+        <YAxis tick={chartTick(c)} tickFormatter={v => formatCurrency(v, currency)} width={70} />
         <Tooltip content={<TooltipContent currency={currency} />} />
-        <Bar dataKey="Budget" fill="#363640" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="Budget" fill={c.neutralBar} radius={[3, 3, 0, 0]} />
         <Bar dataKey="Actual" radius={[3, 3, 0, 0]}>
           {data.map((entry, i) => (
-            <Cell key={i} fill={entry.Actual > entry.Budget ? '#e05c5c' : '#4caf7d'} />
+            <Cell key={i} fill={entry.Actual > entry.Budget ? c.expense : c.income} />
           ))}
         </Bar>
       </BarChart>
@@ -326,6 +331,8 @@ export function BudgetVsActualCard({ card, transactions, budgets, currency, mont
 
 // ── Top Category per Period Card ──────────────────────────────────────────────
 export function TopCategoryPerPeriodCard({ card, transactions, periods, currency, month }: CardProps) {
+  const { resolved: theme } = useTheme()
+  const c = chartColors(theme)
   const mStart = startOfMonth(month)
   const mEnd = endOfMonth(month)
   const direction = card.config.direction ?? 'expense'
@@ -395,7 +402,7 @@ export function TopCategoryPerPeriodCard({ card, transactions, periods, currency
     const d = payload[0].payload
     return (
       <div className="bg-surface-raised border border-border rounded-md px-3 py-2 text-xs shadow-lg">
-        <p className="font-medium" style={{ color: categoryColor(d.category) }}>{d.category}</p>
+        <p className="font-medium" style={{ color: categoryColor(d.category, theme) }}>{d.category}</p>
         <p className="text-text-primary">{formatCurrency(d.amount, currency)}<span className="text-text-muted">/day</span></p>
       </div>
     )
@@ -407,13 +414,13 @@ export function TopCategoryPerPeriodCard({ card, transactions, periods, currency
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={active.bars} margin={{ left: 8, right: 8, top: 4, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#26262c" vertical={false} />
-            <XAxis dataKey="category" tick={CHART_STYLE} />
-            <YAxis tick={CHART_STYLE} tickFormatter={v => `${formatCurrency(v, currency)}/d`} width={72} />
+            <CartesianGrid strokeDasharray="3 3" stroke={c.grid} vertical={false} />
+            <XAxis dataKey="category" tick={chartTick(c)} />
+            <YAxis tick={chartTick(c)} tickFormatter={v => `${formatCurrency(v, currency)}/d`} width={72} />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="amount" radius={[3, 3, 0, 0]}>
               {active.bars.map((entry, i) => (
-                <Cell key={i} fill={categoryColor(entry.category)} />
+                <Cell key={i} fill={categoryColor(entry.category, theme)} />
               ))}
             </Bar>
           </BarChart>
@@ -450,6 +457,8 @@ function TabStrip({ tabs, activeIdx, onSelect }: {
 
 // ── Category Breakdown Card ───────────────────────────────────────────────────
 export function CategoryBreakdownCard({ card, transactions, currency, month }: CardProps) {
+  const { resolved: theme } = useTheme()
+  const c = chartColors(theme)
   const mStart = startOfMonth(month)
   const mEnd = endOfMonth(month)
   const direction = card.config.direction ?? 'expense'
@@ -490,7 +499,7 @@ export function CategoryBreakdownCard({ card, transactions, currency, month }: C
     <div className="flex items-center justify-center h-full text-text-muted text-sm">No transactions this month</div>
   )
 
-  const color = categoryColor(active.label)
+  const color = categoryColor(active.label, theme)
 
   const CustomTooltip = ({ active: a, payload }: { active?: boolean; payload?: { payload: { name: string; amount: number } }[] }) => {
     if (!a || !payload?.length) return null
@@ -509,9 +518,9 @@ export function CategoryBreakdownCard({ card, transactions, currency, month }: C
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={active.bars} margin={{ left: 8, right: 8, top: 4, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#26262c" vertical={false} />
-            <XAxis dataKey="name" tick={CHART_STYLE} />
-            <YAxis tick={CHART_STYLE} tickFormatter={v => formatCurrency(v, currency)} width={72} />
+            <CartesianGrid strokeDasharray="3 3" stroke={c.grid} vertical={false} />
+            <XAxis dataKey="name" tick={chartTick(c)} />
+            <YAxis tick={chartTick(c)} tickFormatter={v => formatCurrency(v, currency)} width={72} />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="amount" radius={[3, 3, 0, 0]} fill={color} />
           </BarChart>

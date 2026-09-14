@@ -196,8 +196,8 @@ export function PeriodModal({ open, onOpenChange, period, allPeriods, defaultSta
 
           {/* Preview */}
           <div
-            className="rounded-md px-3 py-2 text-sm font-medium"
-            style={{ backgroundColor: `${color}20`, color, border: `1px solid ${color}40` }}
+            className="chip rounded-md px-3 py-2 text-sm font-medium"
+            style={{ '--chip': color } as React.CSSProperties}
           >
             {label || 'Period preview'}
           </div>

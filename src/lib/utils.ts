@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import type { ResolvedTheme } from '@/lib/theme'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -38,6 +39,7 @@ export function getDaysInRange(from: string, to: string): number {
   return Math.max(1, Math.ceil((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)) + 1)
 }
 
+/** Canonical (dark-theme) category hues. Keys are stable — never rename. */
 export const CATEGORY_COLORS: Record<string, string> = {
   Food: '#f5a623',
   Transport: '#5e6ad2',
@@ -51,6 +53,22 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Other: '#8a8a9a',
 }
 
-export function categoryColor(cat: string): string {
-  return CATEGORY_COLORS[cat] ?? '#8a8a9a'
+/** The same hues, deepened to stay legible on a white surface (>= 4.5:1). */
+export const CATEGORY_COLORS_LIGHT: Record<string, string> = {
+  Food: '#b5730c',
+  Transport: '#4f5ac4',
+  Housing: '#157f4c',
+  Health: '#c4383a',
+  Entertainment: '#7c5cf0',
+  Utilities: '#0a7ea8',
+  Shopping: '#c2620c',
+  Education: '#12855c',
+  Travel: '#2a6fd4',
+  Other: '#6c6e7b',
+}
+
+export function categoryColor(cat: string, theme: ResolvedTheme = 'dark'): string {
+  return theme === 'light'
+    ? CATEGORY_COLORS_LIGHT[cat] ?? '#6c6e7b'
+    : CATEGORY_COLORS[cat] ?? '#8a8a9a'
 }

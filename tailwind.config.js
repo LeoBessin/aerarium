@@ -1,6 +1,12 @@
 /** @type {import('tailwindcss').Config} */
+
+// Colors are channel-only CSS variables (e.g. `--accent: 94 106 210`) so that
+// Tailwind opacity modifiers keep working: `bg-accent/10` compiles to
+// `rgb(var(--accent) / 0.1)`. Values live in src/index.css.
+const rgb = (v) => `rgb(var(${v}) / <alpha-value>)`
+
 export default {
-  darkMode: ['class'],
+  darkMode: ['selector', '[data-theme="dark"]'],
   content: [
     './index.html',
     './src/**/*.{ts,tsx}',
@@ -8,32 +14,40 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#0e0e10',
+        background: rgb('--background'),
         surface: {
-          DEFAULT: '#131316',
-          raised: '#1c1c21',
-          overlay: '#222228',
+          DEFAULT: rgb('--surface'),
+          raised: rgb('--surface-raised'),
+          overlay: rgb('--surface-overlay'),
         },
         border: {
-          DEFAULT: '#26262c',
-          strong: '#363640',
+          DEFAULT: rgb('--border'),
+          strong: rgb('--border-strong'),
         },
         text: {
-          primary: '#e2e2e9',
-          secondary: '#b4b4c0',
-          muted: '#8a8a9a',
-          disabled: '#55555f',
+          primary: rgb('--text-primary'),
+          secondary: rgb('--text-secondary'),
+          muted: rgb('--text-muted'),
+          disabled: rgb('--text-disabled'),
         },
         accent: {
-          DEFAULT: '#5e6ad2',
-          hover: '#6b78e5',
-          muted: '#5e6ad220',
+          DEFAULT: rgb('--accent'),
+          hover: rgb('--accent-hover'),
+          // `accent.muted` (#5e6ad220) removed: it baked alpha into the token,
+          // which makes opacity modifiers meaningless. Use `bg-accent/10`.
         },
-        success: '#4caf7d',
-        warning: '#f5a623',
-        danger: '#e05c5c',
-        income: '#4caf7d',
-        expense: '#e05c5c',
+        success: rgb('--success'),
+        warning: rgb('--warning'),
+        danger: rgb('--danger'),
+        income: rgb('--income'),
+        expense: rgb('--expense'),
+
+        // Modal/sheet scrims: complete colors (alpha included) that differ per
+        // theme, so they are not channel vars and take no opacity modifier.
+        scrim: {
+          DEFAULT: 'var(--scrim)',
+          soft: 'var(--scrim-soft)',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
