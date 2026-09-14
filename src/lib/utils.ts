@@ -72,3 +72,23 @@ export function categoryColor(cat: string, theme: ResolvedTheme = 'dark'): strin
     ? CATEGORY_COLORS_LIGHT[cat] ?? '#6c6e7b'
     : CATEGORY_COLORS[cat] ?? '#8a8a9a'
 }
+
+/**
+ * Newest item per distinct label, keyed by lowercased label, in recency order.
+ * Built from a date-descending sort, so iterating the values yields newest-first
+ * and `map.get(typed.trim().toLowerCase())` is an exact-label lookup.
+ */
+export function latestByLabel<T extends { label: string }>(
+  items: T[],
+  dateOf: (item: T) => string,
+): Map<string, T> {
+  const map = new Map<string, T>()
+  items
+    .slice()
+    .sort((a, b) => dateOf(b).localeCompare(dateOf(a)))
+    .forEach(item => {
+      const key = item.label.trim().toLowerCase()
+      if (!map.has(key)) map.set(key, item)
+    })
+  return map
+}

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { cn, isoToday, categoryColor } from '@/lib/utils'
+import { cn, isoToday, categoryColor, formatCurrency, latestByLabel } from '@/lib/utils'
 import type { Transaction } from '@/types'
 
 const FALLBACK_CATEGORIES = [
@@ -18,10 +18,11 @@ interface Props {
   onOpenChange: (open: boolean) => void
   transaction: Transaction | null
   allTransactions: Transaction[]
+  currency: string
   onSave: (data: Omit<Transaction, 'id'>) => Promise<void>
 }
 
-export function TransactionSheet({ open, onOpenChange, transaction, allTransactions, onSave }: Props) {
+export function TransactionSheet({ open, onOpenChange, transaction, allTransactions, currency, onSave }: Props) {
   const [label, setLabel] = useState('')
   const [amount, setAmount] = useState('')
   const [type, setType] = useState<'income' | 'expense'>('expense')
@@ -40,26 +41,28 @@ export function TransactionSheet({ open, onOpenChange, transaction, allTransacti
     return [...known, ...custom]
   }, [allTransactions])
 
-  // Label autocomplete: unique labels sorted by recency, filtered by current input
+  // Label autocomplete: newest transaction per label, filtered by current input
   const [labelFocused, setLabelFocused] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const labelRef = useRef<HTMLDivElement>(null)
+  // The type toggle has no "empty" state, so track whether the user set it by hand
+  const typeTouched = useRef(false)
+
+  const byLabel = useMemo(
+    () => latestByLabel(allTransactions, t => t.date),
+    [allTransactions]
+  )
 
   const labelSuggestions = useMemo(() => {
     if (!label.trim()) return []
-    const q = label.toLowerCase()
-    const seen = new Set<string>()
-    return allTransactions
-      .slice()
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .map(t => t.label)
-      .filter(l => {
-        if (seen.has(l)) return false
-        seen.add(l)
-        return l.toLowerCase().includes(q) && l.toLowerCase() !== q
+    const q = label.trim().toLowerCase()
+    return [...byLabel.values()]
+      .filter(t => {
+        const l = t.label.toLowerCase()
+        return l.includes(q) && l !== q
       })
       .slice(0, 8)
-  }, [label, allTransactions])
+  }, [label, byLabel])
 
   useEffect(() => {
     if (transaction) {
@@ -72,7 +75,35 @@ export function TransactionSheet({ open, onOpenChange, transaction, allTransacti
       setLabel(''); setAmount(''); setType('expense'); setDate(isoToday()); setCategories([])
     }
     setCatInput('')
+    setActiveIndex(-1)
+    typeTouched.current = false
   }, [transaction, open])
+
+  /** Carry over the fields of the last transaction with this label, never clobbering user input. */
+  function applyFields(t: Transaction) {
+    setAmount(prev => (prev.trim() ? prev : String(t.amount)))
+    setCategories(prev => (prev.length ? prev : [...t.categories]))
+    if (!typeTouched.current) setType(t.type)
+  }
+
+  function pickSuggestion(t: Transaction) {
+    setLabel(t.label)
+    applyFields(t)
+    setActiveIndex(-1)
+    setLabelFocused(false)
+  }
+
+  // Typing a label that exactly matches an existing one fills the rest too.
+  // Driven from onChange rather than an effect: an effect would also fire on the
+  // reset pass when the sheet opens, re-applying the previous entry's fields.
+  // Skipped in edit mode, where the record's own label would pull in another's.
+  function handleLabelChange(value: string) {
+    setLabel(value)
+    setActiveIndex(-1)
+    if (transaction) return
+    const match = byLabel.get(value.trim().toLowerCase())
+    if (match) applyFields(match)
+  }
 
   function addCategory(cat: string) {
     const trimmed = cat.trim()
@@ -131,7 +162,7 @@ export function TransactionSheet({ open, onOpenChange, transaction, allTransacti
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setType(t)}
+                  onClick={() => { typeTouched.current = true; setType(t) }}
                   className={cn(
                     'flex-1 py-1.5 text-sm font-medium transition-colors capitalize',
                     type === t
@@ -153,9 +184,9 @@ export function TransactionSheet({ open, onOpenChange, transaction, allTransacti
                 id="label"
                 placeholder="e.g. Grocery shopping"
                 value={label}
-                onChange={e => { setLabel(e.target.value); setActiveIndex(-1) }}
+                onChange={e => handleLabelChange(e.target.value)}
                 onFocus={() => setLabelFocused(true)}
-                onBlur={() => setTimeout(() => setLabelFocused(false), 120)}
+                onBlur={() => setLabelFocused(false)}
                 onKeyDown={e => {
                   if (!labelSuggestions.length) return
                   if (e.key === 'ArrowDown') {
@@ -166,9 +197,7 @@ export function TransactionSheet({ open, onOpenChange, transaction, allTransacti
                     setActiveIndex(i => Math.max(i - 1, -1))
                   } else if (e.key === 'Enter' && activeIndex >= 0) {
                     e.preventDefault()
-                    setLabel(labelSuggestions[activeIndex])
-                    setActiveIndex(-1)
-                    setLabelFocused(false)
+                    pickSuggestion(labelSuggestions[activeIndex])
                   } else if (e.key === 'Escape') {
                     setLabelFocused(false)
                   }
@@ -177,29 +206,39 @@ export function TransactionSheet({ open, onOpenChange, transaction, allTransacti
                 autoFocus
                 autoComplete="off"
               />
+              {/* preventDefault on mousedown keeps focus on the input, so onBlur can hide
+                  the list immediately instead of racing a timer against the click */}
               {labelFocused && labelSuggestions.length > 0 && (
-                <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md shadow-lg overflow-hidden">
+                <ul
+                  className="absolute z-50 top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md shadow-lg overflow-hidden"
+                  onMouseDown={e => e.preventDefault()}
+                >
                   {labelSuggestions.map((s, i) => {
-                    const q = label.toLowerCase()
-                    const idx = s.toLowerCase().indexOf(q)
+                    const q = label.trim().toLowerCase()
+                    const idx = s.label.toLowerCase().indexOf(q)
                     return (
                       <li
-                        key={s}
+                        key={s.id}
                         className={cn(
-                          'px-3 py-2 text-sm cursor-pointer transition-colors',
+                          'flex items-center justify-between gap-3 px-3 py-2 text-sm cursor-pointer transition-colors',
                           i === activeIndex
                             ? 'bg-accent/10 text-text-primary'
                             : 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary'
                         )}
-                        onMouseDown={() => { setLabel(s); setLabelFocused(false) }}
+                        onClick={() => pickSuggestion(s)}
                       >
-                        {idx >= 0 ? (
-                          <>
-                            {s.slice(0, idx)}
-                            <span className="text-accent font-medium">{s.slice(idx, idx + q.length)}</span>
-                            {s.slice(idx + q.length)}
-                          </>
-                        ) : s}
+                        <span className="truncate">
+                          {idx >= 0 ? (
+                            <>
+                              {s.label.slice(0, idx)}
+                              <span className="text-accent font-medium">{s.label.slice(idx, idx + q.length)}</span>
+                              {s.label.slice(idx + q.length)}
+                            </>
+                          ) : s.label}
+                        </span>
+                        <span className="shrink-0 text-xs text-text-muted tabular-nums">
+                          {s.type === 'income' ? '+' : '-'}{formatCurrency(s.amount, currency)}
+                        </span>
                       </li>
                     )
                   })}

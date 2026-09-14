@@ -226,6 +226,7 @@ export function TransactionTable() {
         onOpenChange={setSheetOpen}
         transaction={editing}
         allTransactions={transactions}
+        currency={settings.currency}
         onSave={async (data) => {
           if (editing) await update(editing.id, data)
           else await create(data)
